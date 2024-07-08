@@ -3,6 +3,13 @@ pragma solidity 0.8.18;
 
 interface ICopyWalletGNSv8 {
     error ExecutionFeeNotEnough();
+
+    enum OrderType {
+        OPEN,
+        INCREASE,
+        DECREASE
+    }
+
     struct TraderPosition {
         address trader;
         uint32 index;
@@ -18,4 +25,10 @@ interface ICopyWalletGNSv8 {
         address gainsTrading;
         address pyth;
     }
+
+    error TradeMismatch();
+
+    error InvalidLeverage();
+
+    error InvalidCollateralDelta();
 }

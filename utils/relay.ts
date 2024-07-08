@@ -10,7 +10,7 @@ export const getRelaySigner = () => {
   const client = new Defender(credentials);
   const provider = client.relaySigner.getProvider();
   const signer = client.relaySigner.getSigner(provider, {
-    speed: "fast",
+    speed: "fastest",
     validForSeconds: 120,
   });
   return signer;

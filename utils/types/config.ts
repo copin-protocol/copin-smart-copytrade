@@ -38,4 +38,5 @@ export type GMXv1NetworkConfig = CopinConfig & {
 export type GNSv8NetworkConfig = CopinConfig & {
   GAINS_TRADING: string;
   PYTH: string;
+  FEE_RECEIVER: string;
 };

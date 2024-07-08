@@ -57,4 +57,24 @@ interface IGainsTrading {
         address _trader,
         CounterType _type
     ) external view returns (Counter memory);
+
+    function updateTp(uint32 _index, uint64 _newTp) external;
+
+    function updateSl(uint32 _index, uint64 _newSl) external;
+
+    function updateLeverage(uint32 _index, uint24 _newLeverage) external;
+
+    function increasePositionSize(
+        uint32 _index,
+        uint120 _collateralDelta,
+        uint24 _leverageDelta,
+        uint64 _expectedPrice,
+        uint16 _maxSlippageP
+    ) external;
+
+    function decreasePositionSize(
+        uint32 _index,
+        uint120 _collateralDelta,
+        uint24 _leverageDelta
+    ) external;
 }

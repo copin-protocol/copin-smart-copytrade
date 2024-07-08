@@ -8,6 +8,7 @@ async function main() {
   const gainsTrading = (network.config as GNSv8NetworkConfig).GAINS_TRADING;
   const pyth = (network.config as GNSv8NetworkConfig).PYTH;
   const automate = (network.config as GNSv8NetworkConfig).AUTOMATE;
+  const feeReceiver = (network.config as GNSv8NetworkConfig).FEE_RECEIVER;
 
   const [wallet] = await ethers.getSigners();
 
@@ -23,11 +24,11 @@ async function main() {
   // console.log("Events deployed to:", events.address);
   const events = { address: CONFIG.EVENTS_ADDRESS };
 
-  // const Configs = await ethers.getContractFactory("Configs");
-  // const configs = await Configs.deploy(wallet.address);
-  // await configs.deployed();
-  // console.log("Configs deployed to:", configs.address);
-  const configs = { address: CONFIG.CONFIGS_ADDRESS };
+  const Configs = await ethers.getContractFactory("Configs");
+  const configs = await Configs.deploy(feeReceiver);
+  await configs.deployed();
+  console.log("Configs deployed to:", configs.address);
+  // const configs = { address: CONFIG.CONFIGS_ADDRESS };
 
   // const TaskCreator = await ethers.getContractFactory("TaskCreator");
   // const taskCreator = await TaskCreator.deploy(factory.address, automate);

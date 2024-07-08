@@ -16,6 +16,8 @@
     "verify:gmxV1:mainnet": "npx hardhat run --network gmxV1Mainnet scripts/GMXv1/verify.ts",
     "deploy:gnsV8:testnet": "npx hardhat run --network gnsV8Testnet scripts/GNSv8/deploy.ts",
     "verify:gnsV8:testnet": "npx hardhat run --network gnsV8Testnet scripts/GNSv8/verify.ts",
+    "deploy:gnsV8:mainnet": "npx hardhat run --network gnsV8Mainnet scripts/GNSv8/deploy.ts",
+    "verify:gnsV8:mainnet": "npx hardhat run --network gnsV8Mainnet scripts/GNSv8/verify.ts",
     "compile": "hardhat compile",
     "test": "hardhat test",
     "watch": "hardhat watch"

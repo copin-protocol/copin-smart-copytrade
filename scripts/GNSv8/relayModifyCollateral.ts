@@ -10,6 +10,7 @@ const abi = ethers.utils.defaultAbiCoder;
 
 async function main() {
   const signer = getRelaySigner();
+  // CONFIG.SMART_WALLET_ADDRESS = "0xfe4A52967092806d12A8AD6e30119930e8D10098";
   const account = new ethers.Contract(
     CONFIG.SMART_WALLET_ADDRESS,
     accountAbi,
@@ -17,9 +18,15 @@ async function main() {
   );
   console.log("account", account.address);
 
+  const pairIndex = 1;
+  const isLong = true;
+  const collateral = ethers.utils.parseUnits("20", 6);
+
+  // return;
+
   const tx = await account.execute(
-    [Command.PERP_CLOSE_ORDER],
-    [abi.encode(["address", "uint256"], [CONFIG.SMART_WALLET_ADDRESS, 2])]
+    [Command.PERP_MODIFY_COLLATERAL],
+    [abi.encode(["uint256", "uint256", "bool"], [29, collateral, false])]
   );
   console.log("tx", tx);
 }

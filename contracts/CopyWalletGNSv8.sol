@@ -58,9 +58,11 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
 
     function getKeyIndex(
         address _source,
-        uint256 _sourceIndex
+        uint32 _sourceIndex
     ) external view returns (uint32 index) {
-        bytes32 key = keccak256(abi.encodePacked(_source, _sourceIndex));
+        bytes32 key = keccak256(
+            abi.encodePacked(_source, uint256(_sourceIndex))
+        );
         index = _keyIndexes[key];
     }
 
@@ -82,26 +84,82 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
 
     function _perpWithdrawAllMargin(bytes calldata _inputs) internal override {}
 
-    function _perpModifyCollateral(bytes calldata _inputs) internal override {}
+    function _perpModifyCollateral(bytes calldata _inputs) internal override {
+        uint32 index;
+        uint120 collateral;
+        bool isIncrease;
+        assembly {
+            index := calldataload(_inputs.offset)
+            collateral := calldataload(add(_inputs.offset, 0x20))
+            isIncrease := calldataload(add(_inputs.offset, 0x40))
+        }
+
+        IGainsTrading.Trade memory trade = GAINS_TRADING.getTrade(
+            address(this),
+            index
+        );
+
+        if (!trade.isOpen) {
+            revert NoOpenPosition();
+        }
+
+        uint120 newCollateral = trade.collateralAmount + collateral;
+
+        if (isIncrease) {
+            USD_ASSET.approve(address(GAINS_TRADING), (collateral * 105) / 100); // 5% safety
+        } else {
+            if (uint120(collateral) >= trade.collateralAmount) {
+                revert InvalidCollateralDelta();
+            }
+            newCollateral = trade.collateralAmount - collateral;
+        }
+        uint24 newLeverage = uint24(
+            (trade.collateralAmount * uint120(trade.leverage)) / newCollateral
+        );
+
+        if (newLeverage < 2000 || newLeverage > 150000) {
+            revert InvalidLeverage();
+        }
+
+        GAINS_TRADING.updateLeverage(index, newLeverage);
+    }
+
+    function _perpUpdateSltp(bytes calldata _inputs) internal override {
+        uint32 index;
+        uint64 tp;
+        uint64 sl;
+        assembly {
+            index := calldataload(_inputs.offset)
+            tp := calldataload(add(_inputs.offset, 0x20))
+            sl := calldataload(add(_inputs.offset, 0x40))
+        }
+        if (sl > 0) {
+            GAINS_TRADING.updateSl(index, sl);
+        }
+        if (tp > 0) {
+            GAINS_TRADING.updateTp(index, tp);
+        }
+    }
 
     function _perpCancelOrder(bytes calldata _inputs) internal override {
-        uint256 index;
+        uint32 index;
         assembly {
             index := calldataload(_inputs.offset)
         }
-        GAINS_TRADING.cancelOpenOrder(uint32(index));
+        GAINS_TRADING.cancelOpenOrder(index);
     }
 
     function _perpPlaceOrder(bytes calldata _inputs) internal override {
         address source;
-        uint256 sourceIndex;
-        uint256 pairIndex;
+        uint32 sourceIndex;
+        uint16 pairIndex;
         bool isLong;
-        uint256 collateral;
-        uint256 leverage;
-        uint256 price;
-        uint256 tp;
-        uint256 sl;
+        uint120 collateral;
+        uint24 leverage;
+        uint64 price;
+        uint64 tp;
+        uint64 sl;
+        OrderType orderType;
         assembly {
             source := calldataload(_inputs.offset)
             sourceIndex := calldataload(add(_inputs.offset, 0x20))
@@ -112,29 +170,45 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             price := calldataload(add(_inputs.offset, 0xc0))
             tp := calldataload(add(_inputs.offset, 0xe0))
             sl := calldataload(add(_inputs.offset, 0x100))
+            orderType := calldataload(add(_inputs.offset, 0x120))
         }
-        _placeOrder({
-            _source: source,
-            _sourceIndex: sourceIndex,
-            _pairIndex: pairIndex,
-            _isLong: isLong,
-            _collateral: collateral,
-            _leverage: leverage,
-            _price: price,
-            _tp: tp,
-            _sl: sl
-        });
+        if (orderType == OrderType.OPEN) {
+            _openTrade({
+                _source: source,
+                _sourceIndex: sourceIndex,
+                _pairIndex: pairIndex,
+                _isLong: isLong,
+                _collateral: collateral,
+                _leverage: leverage,
+                _price: price,
+                _tp: tp,
+                _sl: sl
+            });
+        } else {
+            _updateTrade({
+                _source: source,
+                _sourceIndex: sourceIndex,
+                _pairIndex: pairIndex,
+                _isLong: isLong,
+                _isIncrease: orderType == OrderType.INCREASE,
+                _collateral: collateral,
+                _leverage: leverage,
+                _price: price,
+                _tp: tp,
+                _sl: sl
+            });
+        }
     }
 
     function _perpCloseOrder(bytes calldata _inputs) internal override {
         address source;
-        uint256 sourceIndex;
+        uint32 sourceIndex;
         assembly {
             source := calldataload(_inputs.offset)
             sourceIndex := calldataload(add(_inputs.offset, 0x20))
         }
 
-        bytes32 key = keccak256(abi.encodePacked(source, sourceIndex));
+        bytes32 key = keccak256(abi.encodePacked(source, uint256(sourceIndex)));
         uint32 index = _keyIndexes[key];
         TraderPosition memory traderPosition = _traderPositions[index];
 
@@ -148,20 +222,28 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         _closeOrder(source, key, index);
     }
 
-    function _placeOrder(
+    function _openTrade(
         address _source,
-        uint256 _sourceIndex,
-        uint256 _pairIndex,
+        uint32 _sourceIndex,
+        uint16 _pairIndex,
         bool _isLong,
-        uint256 _collateral,
-        uint256 _leverage,
-        uint256 _price,
-        uint256 _tp,
-        uint256 _sl
+        uint120 _collateral,
+        uint24 _leverage,
+        uint64 _price,
+        uint64 _tp,
+        uint64 _sl
     ) internal {
-        bytes32 key = keccak256(abi.encodePacked(_source, _sourceIndex));
+        bytes32 key = keccak256(
+            abi.encodePacked(_source, uint256(_sourceIndex))
+        );
         if (_keyIndexes[key] > 0) {
-            revert PositionExist();
+            IGainsTrading.Trade memory lastTrade = GAINS_TRADING.getTrade(
+                address(this),
+                _keyIndexes[key]
+            );
+            if (lastTrade.isOpen) {
+                revert PositionExist();
+            }
         }
         IGainsTrading.Counter memory counter = GAINS_TRADING.getCounters(
             address(this),
@@ -172,17 +254,17 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         trade.isOpen = true;
         trade.long = _isLong;
         trade.collateralIndex = 3;
-        trade.pairIndex = uint16(_pairIndex);
-        trade.collateralAmount = uint120(_collateral);
-        trade.leverage = uint24(_leverage);
-        trade.openPrice = uint64(_price / 10 ** 8);
-        trade.tp = uint64(_tp / 10 ** 8);
-        trade.sl = uint64(_sl / 10 ** 8);
+        trade.pairIndex = _pairIndex;
+        trade.collateralAmount = _collateral;
+        trade.leverage = _leverage;
+        trade.openPrice = _price;
+        trade.tp = _tp;
+        trade.sl = _sl;
         trade.index = counter.currentIndex;
 
         TraderPosition memory traderPosition = TraderPosition({
             trader: _source,
-            index: uint32(_sourceIndex),
+            index: _sourceIndex,
             __placeholder: 0
         });
 
@@ -199,6 +281,66 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             _lastSizeUsd: 0,
             _sizeDeltaUsd: (_collateral * _leverage) / 1000,
             _isIncrease: true
+        });
+    }
+
+    function _updateTrade(
+        address _source,
+        uint32 _sourceIndex,
+        uint16 _pairIndex,
+        bool _isLong,
+        bool _isIncrease,
+        uint120 _collateral,
+        uint24 _leverage,
+        uint64 _price,
+        uint64 _tp,
+        uint64 _sl
+    ) internal {
+        bytes32 key = keccak256(
+            abi.encodePacked(_source, uint256(_sourceIndex))
+        );
+        IGainsTrading.Trade memory trade = GAINS_TRADING.getTrade(
+            address(this),
+            _keyIndexes[key]
+        );
+        if (!trade.isOpen) {
+            revert NoOpenPosition();
+        }
+        if (trade.pairIndex != _pairIndex || trade.long != _isLong) {
+            revert TradeMismatch();
+        }
+
+        if (_isIncrease) {
+            USD_ASSET.approve(address(GAINS_TRADING), _collateral);
+            GAINS_TRADING.increasePositionSize({
+                _index: trade.index,
+                _collateralDelta: _collateral,
+                _leverageDelta: _leverage,
+                _expectedPrice: _price,
+                _maxSlippageP: 300
+            });
+        } else {
+            GAINS_TRADING.decreasePositionSize({
+                _index: trade.index,
+                _collateralDelta: _collateral,
+                _leverageDelta: 0
+            });
+        }
+
+        if (_tp > 0) {
+            GAINS_TRADING.updateTp(trade.index, _tp);
+        }
+
+        if (_sl > 0) {
+            GAINS_TRADING.updateSl(trade.index, _sl);
+        }
+
+        _postOrder({
+            _id: uint256(key),
+            _source: _source,
+            _lastSizeUsd: (trade.collateralAmount * trade.leverage) / 1000,
+            _sizeDeltaUsd: (_collateral * _leverage) / 1000,
+            _isIncrease: _isIncrease
         });
     }
 

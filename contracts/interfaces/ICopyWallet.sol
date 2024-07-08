@@ -14,7 +14,8 @@ interface ICopyWallet {
         PERP_WITHDRAW_ALL_MARGIN, //8
         GELATO_CREATE_TASK, //9
         GELATO_UPDATE_TASK, //10
-        GELETO_CANCEL_TASK //11
+        GELETO_CANCEL_TASK, //11
+        PERP_UPDATE_SLTP //12
     }
 
     enum TaskCommand {

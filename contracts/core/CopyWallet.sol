@@ -115,6 +115,7 @@ abstract contract CopyWallet is
         Command[] calldata _commands,
         bytes[] calldata _inputs
     ) external payable override nonReentrant {
+        uint256 beginGasLeft = gasleft();
         uint256 numCommands = _commands.length;
         if (_inputs.length != numCommands) {
             revert LengthMismatch();
@@ -126,7 +127,8 @@ abstract contract CopyWallet is
             }
         }
         if (msg.sender == executor) {
-            _chargeExecutorFee(msg.sender);
+            uint256 gas = CONFIGS.baseGas() + beginGasLeft - gasleft();
+            _chargeExecutorFee(msg.sender, (gas * tx.gasprice * 12) / 10); // increase 20% for gas limit safety
         }
     }
 
@@ -162,6 +164,8 @@ abstract contract CopyWallet is
                 _perpCancelOrder(_inputs);
             } else if (_command == Command.PERP_WITHDRAW_ALL_MARGIN) {
                 _perpWithdrawAllMargin(_inputs);
+            } else if (_command == Command.PERP_UPDATE_SLTP) {
+                _perpUpdateSltp(_inputs);
             }
             // TODO task
             //  else if (_command == Command.GELATO_CREATE_TASK) {
@@ -261,12 +265,15 @@ abstract contract CopyWallet is
 
     /* ========== FEES ========== */
 
-    function _chargeExecutorFee(address _executor) internal returns (uint256) {
+    function _chargeExecutorFee(
+        address _executor,
+        uint256 _fee
+    ) internal returns (uint256) {
         uint256 fee;
         if (_executor == address(TASK_CREATOR)) {
             (fee, ) = _getFeeDetails();
         } else {
-            fee = CONFIGS.executorFee();
+            fee = _fee;
         }
         uint256 feeUsd = ethToUsd(fee);
         address feeReceiver = CONFIGS.feeReceiver();
@@ -353,6 +360,8 @@ abstract contract CopyWallet is
     function _perpCancelOrder(bytes calldata _inputs) internal virtual {}
 
     function _perpWithdrawAllMargin(bytes calldata _inputs) internal virtual {}
+
+    function _perpUpdateSltp(bytes calldata _inputs) internal virtual {}
 
     /* ========== TASKS ========== */
 

@@ -27,6 +27,7 @@ export enum Command {
   GELATO_CREATE_TASK = 9,
   GELATO_UPDATE_TASK = 10,
   GELETO_CANCEL_TASK = 11,
+  PERP_UPDATE_SLTP = 12,
 }
 
 export const SNX_V3_MARKET_IDS = {

@@ -6,6 +6,7 @@ async function main() {
   const usdAsset = (network.config as GNSv8NetworkConfig).USD_ASSET;
   const gainsTrading = (network.config as GNSv8NetworkConfig).GAINS_TRADING;
   const pyth = (network.config as GNSv8NetworkConfig).PYTH;
+  const feeReceiver = (network.config as GNSv8NetworkConfig).FEE_RECEIVER;
   const automate = (network.config as GNSv8NetworkConfig).AUTOMATE;
   const [wallet] = await ethers.getSigners();
 
@@ -17,22 +18,22 @@ async function main() {
     address: CONFIG.IMPLEMENTATION_ADDRESS,
   };
 
-  await run("verify:verify", {
-    address: factory.address,
-    constructorArguments: [wallet.address],
-  });
-  await run("verify:verify", {
-    address: events.address,
-    constructorArguments: [factory.address],
-  });
-  await run("verify:verify", {
-    address: configs.address,
-    constructorArguments: [wallet.address],
-  });
-  await run("verify:verify", {
-    address: taskCreator.address,
-    constructorArguments: [factory.address, automate],
-  });
+  // await run("verify:verify", {
+  //   address: factory.address,
+  //   constructorArguments: [wallet.address],
+  // });
+  // await run("verify:verify", {
+  //   address: events.address,
+  //   constructorArguments: [factory.address],
+  // });
+  // await run("verify:verify", {
+  //   address: configs.address,
+  //   constructorArguments: [feeReceiver],
+  // });
+  // await run("verify:verify", {
+  //   address: taskCreator.address,
+  //   constructorArguments: [factory.address, automate],
+  // });
   await run("verify:verify", {
     address: implementation.address,
     constructorArguments: [
