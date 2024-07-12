@@ -1,3 +1,5 @@
+const { BigNumber } = require("ethers");
+
 const DATA = {
   "GNS-0": "BTC",
   "GNS-1": "ETH",
@@ -164,3 +166,5 @@ console.log(
       return prev;
     }, {})
 );
+
+console.log(BigNumber.from(1).mul("52100").div(1000).toString());

@@ -24,11 +24,11 @@ async function main() {
   // console.log("Events deployed to:", events.address);
   const events = { address: CONFIG.EVENTS_ADDRESS };
 
-  const Configs = await ethers.getContractFactory("Configs");
-  const configs = await Configs.deploy(feeReceiver);
-  await configs.deployed();
-  console.log("Configs deployed to:", configs.address);
-  // const configs = { address: CONFIG.CONFIGS_ADDRESS };
+  // const Configs = await ethers.getContractFactory("Configs");
+  // const configs = await Configs.deploy(feeReceiver);
+  // await configs.deployed();
+  // console.log("Configs deployed to:", configs.address);
+  const configs = { address: CONFIG.CONFIGS_ADDRESS };
 
   // const TaskCreator = await ethers.getContractFactory("TaskCreator");
   // const taskCreator = await TaskCreator.deploy(factory.address, automate);

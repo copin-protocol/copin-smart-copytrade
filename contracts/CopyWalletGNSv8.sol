@@ -160,6 +160,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         uint64 tp;
         uint64 sl;
         OrderType orderType;
+        uint16 slippage;
         assembly {
             source := calldataload(_inputs.offset)
             sourceIndex := calldataload(add(_inputs.offset, 0x20))
@@ -171,7 +172,9 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             tp := calldataload(add(_inputs.offset, 0xe0))
             sl := calldataload(add(_inputs.offset, 0x100))
             orderType := calldataload(add(_inputs.offset, 0x120))
+            slippage := calldataload(add(_inputs.offset, 0x140))
         }
+        if (slippage == 0) slippage = 300; // default slippage is 0.3%
         if (orderType == OrderType.OPEN) {
             _openTrade({
                 _source: source,
@@ -182,7 +185,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
                 _leverage: leverage,
                 _price: price,
                 _tp: tp,
-                _sl: sl
+                _sl: sl,
+                _slippage: slippage
             });
         } else {
             _updateTrade({
@@ -195,7 +199,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
                 _leverage: leverage,
                 _price: price,
                 _tp: tp,
-                _sl: sl
+                _sl: sl,
+                _slippage: slippage
             });
         }
     }
@@ -231,7 +236,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         uint24 _leverage,
         uint64 _price,
         uint64 _tp,
-        uint64 _sl
+        uint64 _sl,
+        uint16 _slippage
     ) internal {
         bytes32 key = keccak256(
             abi.encodePacked(_source, uint256(_sourceIndex))
@@ -273,7 +279,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
 
         USD_ASSET.approve(address(GAINS_TRADING), _collateral);
 
-        GAINS_TRADING.openTrade(trade, 300, CONFIGS.feeReceiver());
+        GAINS_TRADING.openTrade(trade, _slippage, CONFIGS.feeReceiver());
 
         _postOrder({
             _id: uint256(key),
@@ -294,7 +300,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         uint24 _leverage,
         uint64 _price,
         uint64 _tp,
-        uint64 _sl
+        uint64 _sl,
+        uint16 _slippage
     ) internal {
         bytes32 key = keccak256(
             abi.encodePacked(_source, uint256(_sourceIndex))
@@ -317,7 +324,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
                 _collateralDelta: _collateral,
                 _leverageDelta: _leverage,
                 _expectedPrice: _price,
-                _maxSlippageP: 300
+                _maxSlippageP: _slippage
             });
         } else {
             GAINS_TRADING.decreasePositionSize({

@@ -26,10 +26,10 @@ async function main() {
   //   address: events.address,
   //   constructorArguments: [factory.address],
   // });
-  // await run("verify:verify", {
-  //   address: configs.address,
-  //   constructorArguments: [feeReceiver],
-  // });
+  await run("verify:verify", {
+    address: configs.address,
+    constructorArguments: [feeReceiver],
+  });
   // await run("verify:verify", {
   //   address: taskCreator.address,
   //   constructorArguments: [factory.address, automate],
