@@ -22,6 +22,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
 
     mapping(bytes32 => uint32) _keyIndexes;
     mapping(uint32 => TraderPosition) _traderPositions;
+    mapping(bytes32 => bool) _closeCharged;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -66,6 +67,17 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         index = _keyIndexes[key];
     }
 
+    function hasCloseCharged(uint32 _index) external view returns (bool) {
+        TraderPosition memory traderPosition = _traderPositions[_index];
+        bytes32 key = keccak256(
+            abi.encodePacked(
+                traderPosition.trader,
+                uint256(traderPosition.index)
+            )
+        );
+        return _closeCharged[key];
+    }
+
     /* ========== PERPS ========== */
 
     function closePosition(uint32 _index) external nonReentrant {
@@ -78,6 +90,39 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             )
         );
         _closeOrder(traderPosition.trader, key, _index);
+    }
+
+    function chargeCloseFee(uint32 _index) external nonReentrant {
+        if (!isAuth(msg.sender)) revert Unauthorized();
+        IGainsTrading.Trade memory trade = GAINS_TRADING.getTrade(
+            address(this),
+            _index
+        );
+
+        if (trade.isOpen) revert TradeOpening();
+
+        TraderPosition memory traderPosition = _traderPositions[_index];
+
+        bytes32 key = keccak256(
+            abi.encodePacked(
+                traderPosition.trader,
+                uint256(traderPosition.index)
+            )
+        );
+
+        if (_closeCharged[key]) revert AlreadyCharged();
+
+        uint256 size = (trade.collateralAmount * trade.leverage) / 1000;
+
+        _postOrder({
+            _id: uint256(key),
+            _source: traderPosition.trader,
+            _lastSizeUsd: size,
+            _sizeDeltaUsd: size,
+            _isIncrease: false
+        });
+
+        _closeCharged[key] = true;
     }
 
     function _perpInit() internal override {}
@@ -372,6 +417,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             _sizeDeltaUsd: size,
             _isIncrease: false
         });
+
+        _closeCharged[_key] = true;
     }
 
     /* ========== TASKS ========== */

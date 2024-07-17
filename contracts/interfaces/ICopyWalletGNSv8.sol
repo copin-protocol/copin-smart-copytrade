@@ -31,4 +31,8 @@ interface ICopyWalletGNSv8 {
     error InvalidLeverage();
 
     error InvalidCollateralDelta();
+
+    error TradeOpening();
+
+    error AlreadyCharged();
 }
