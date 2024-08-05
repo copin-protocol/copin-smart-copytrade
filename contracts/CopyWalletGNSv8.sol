@@ -93,7 +93,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
     }
 
     function chargeCloseFee(uint32 _index) external nonReentrant {
-        if (!isAuth(msg.sender)) revert Unauthorized();
+        if (!isAuth(msg.sender) && !CONFIGS.executors(msg.sender))
+            revert Unauthorized();
         IGainsTrading.Trade memory trade = GAINS_TRADING.getTrade(
             address(this),
             _index
@@ -241,7 +242,6 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
                 _isLong: isLong,
                 _isIncrease: orderType == OrderType.INCREASE,
                 _collateral: collateral,
-                _leverage: leverage,
                 _price: price,
                 _tp: tp,
                 _sl: sl,
@@ -342,7 +342,6 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         bool _isLong,
         bool _isIncrease,
         uint120 _collateral,
-        uint24 _leverage,
         uint64 _price,
         uint64 _tp,
         uint64 _sl,
@@ -367,7 +366,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             GAINS_TRADING.increasePositionSize({
                 _index: trade.index,
                 _collateralDelta: _collateral,
-                _leverageDelta: _leverage,
+                _leverageDelta: trade.leverage,
                 _expectedPrice: _price,
                 _maxSlippageP: _slippage
             });
@@ -391,7 +390,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             _id: uint256(key),
             _source: _source,
             _lastSizeUsd: (trade.collateralAmount * trade.leverage) / 1000,
-            _sizeDeltaUsd: (_collateral * _leverage) / 1000,
+            _sizeDeltaUsd: (_collateral * trade.leverage) / 1000,
             _isIncrease: _isIncrease
         });
     }

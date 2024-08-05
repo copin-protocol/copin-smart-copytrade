@@ -8,6 +8,12 @@ interface IConfigs {
 
     event FeeReceiverSet(address feeReceiver);
 
+    event ExecutorAdded(address executor);
+
+    event ExecutorRemoved(address executor);
+
+    function executors(address executor) external view returns (bool);
+
     function baseGas() external view returns (uint256);
 
     function protocolFee() external view returns (uint256);
@@ -19,4 +25,8 @@ interface IConfigs {
     function setProtocolFee(uint256 _protocolFee) external;
 
     function setFeeReceiver(address _feeReceiver) external;
+
+    function addExecutor(address _executor) external;
+
+    function removeExecutor(address _executor) external;
 }

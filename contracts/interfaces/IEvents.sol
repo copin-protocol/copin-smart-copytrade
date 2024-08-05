@@ -60,6 +60,25 @@ interface IEvents {
         uint256 feeUsd
     );
 
+    function emitCreateOrder(
+        uint256 positionId,
+        address source,
+        uint256 lastSizeUsd,
+        uint256 sizeDeltaUsd,
+        bool isIncrease,
+        uint256 feeUsd
+    ) external;
+
+    event CreateOrder(
+        address indexed copyWallet,
+        uint256 indexed positionId,
+        address indexed source,
+        uint256 lastSizeUsd,
+        uint256 sizeDeltaUsd,
+        bool isIncrease,
+        uint256 feeUsd
+    );
+
     function emitCreateGelatoTask(
         uint256 taskId,
         bytes32 gelatoTaskId,

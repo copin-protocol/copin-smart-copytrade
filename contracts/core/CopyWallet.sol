@@ -126,7 +126,7 @@ abstract contract CopyWallet is
                 ++commandIndex;
             }
         }
-        if (msg.sender == executor) {
+        if (msg.sender == executor || CONFIGS.executors(msg.sender)) {
             uint256 gas = CONFIGS.baseGas() + beginGasLeft - gasleft();
             _chargeExecutorFee(msg.sender, (gas * tx.gasprice * 12) / 10); // increase 20% for gas limit safety
         }
@@ -151,7 +151,8 @@ abstract contract CopyWallet is
                 _withdrawEth({_amount: amount, _msgSender: msg.sender});
             }
         } else {
-            if (!isAuth(msg.sender)) revert Unauthorized();
+            if (!isAuth(msg.sender) && !CONFIGS.executors(msg.sender))
+                revert Unauthorized();
             if (_command == Command.PERP_CREATE_ACCOUNT) {
                 _perpCreateAccount();
             } else if (_command == Command.PERP_MODIFY_COLLATERAL) {
@@ -344,6 +345,15 @@ abstract contract CopyWallet is
             lastSizeUsd: _lastSizeUsd,
             lastSizeDeltaUsd: _sizeDeltaUsd,
             lastFeeUsd: feeUsd
+        });
+
+        EVENTS.emitCreateOrder({
+            positionId: _id,
+            source: _source,
+            lastSizeUsd: _lastSizeUsd,
+            sizeDeltaUsd: _sizeDeltaUsd,
+            isIncrease: _isIncrease,
+            feeUsd: feeUsd
         });
     }
 

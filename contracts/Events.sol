@@ -75,6 +75,25 @@ contract Events is IEvents {
         });
     }
 
+    function emitCreateOrder(
+        uint256 positionId,
+        address source,
+        uint256 lastSizeUsd,
+        uint256 sizeDeltaUsd,
+        bool isIncrease,
+        uint256 feeUsd
+    ) external override onlyCopyWallets {
+        emit CreateOrder({
+            copyWallet: msg.sender,
+            positionId: positionId,
+            source: source,
+            lastSizeUsd: lastSizeUsd,
+            sizeDeltaUsd: sizeDeltaUsd,
+            isIncrease: isIncrease,
+            feeUsd: feeUsd
+        });
+    }
+
     function emitCreateGelatoTask(
         uint256 taskId,
         bytes32 gelatoTaskId,

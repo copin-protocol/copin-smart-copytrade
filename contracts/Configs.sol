@@ -10,6 +10,7 @@ contract Configs is IConfigs, Owned {
     uint256 public baseGas = 1000000;
     uint256 public protocolFee = 4000; // 0.025%
     address public feeReceiver;
+    mapping(address executor => bool) public executors;
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -35,5 +36,25 @@ contract Configs is IConfigs, Owned {
         require(_feeReceiver != address(0), "Invalid address");
         feeReceiver = _feeReceiver;
         emit FeeReceiverSet(feeReceiver);
+    }
+
+    /// @dev only owner can add a executor
+    function addExecutor(address _executor) external override onlyOwner {
+        require(
+            _executor != address(0) && !executors[_executor],
+            "Invalid address"
+        );
+        executors[_executor] = true;
+        emit ExecutorAdded(_executor);
+    }
+
+    /// @dev only owner can remove a executor
+    function removeExecutor(address _executor) external override onlyOwner {
+        require(
+            _executor != address(0) && executors[_executor],
+            "Invalid address"
+        );
+        executors[_executor] = false;
+        emit ExecutorRemoved(_executor);
     }
 }
