@@ -3,6 +3,7 @@ pragma solidity 0.8.18;
 
 import {ICopyWallet} from "contracts/interfaces/ICopyWallet.sol";
 import {IConfigs} from "contracts/interfaces/IConfigs.sol";
+import {IERC20} from "contracts/interfaces/token/IERC20.sol";
 import {ICopyWalletGNSv8} from "contracts/interfaces/ICopyWalletGNSv8.sol";
 import {CopyWallet} from "contracts/core/CopyWallet.sol";
 import {IRouter} from "contracts/interfaces/GMXv1/IRouter.sol";
@@ -11,6 +12,7 @@ import {IVault} from "contracts/interfaces/GMXv1/IVault.sol";
 import {IPyth} from "contracts/interfaces/pyth/IPyth.sol";
 import {PythStructs} from "contracts/interfaces/pyth/PythStructs.sol";
 import {IGainsTrading} from "contracts/interfaces/GNSv8/IGainsTrading.sol";
+import {IGainsClaimRebate} from "contracts/interfaces/GNSv8/IGainsClaimRebate.sol";
 
 contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
     /* ========== CONSTANTS ========== */
@@ -90,6 +92,30 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             )
         );
         _closeOrder(traderPosition.trader, key, _index);
+    }
+
+    function claimRewards(
+        address _claimContract,
+        address _claimToken,
+        uint256[] calldata _epochs,
+        uint256[] calldata _rewardAmounts,
+        bytes32[][] calldata _proofs
+    ) external nonReentrant {
+        if (
+            !isOwner(msg.sender) &&
+            !isAuth(msg.sender) &&
+            !CONFIGS.executors(msg.sender)
+        ) revert Unauthorized();
+        IGainsClaimRebate(_claimContract).claimMultipleRewards(
+            _epochs,
+            _rewardAmounts,
+            _proofs
+        );
+        uint256 amount;
+        for (uint i = 0; i < _rewardAmounts.length; i++) {
+            amount += _rewardAmounts[i];
+        }
+        IERC20(_claimToken).transfer(owner, amount);
     }
 
     function chargeCloseFee(uint32 _index) external nonReentrant {

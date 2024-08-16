@@ -66,17 +66,17 @@ async function main() {
   //   address: CONFIG.IMPLEMENTATION_ADDRESS,
   // };
 
-  await new Promise((resolve) =>
-    setTimeout(() => {
-      resolve(true);
-    }, 3000)
-  );
+  // await new Promise((resolve) =>
+  //   setTimeout(() => {
+  //     resolve(true);
+  //   }, 3000)
+  // );
 
-  const tx = await factory
-    .connect(wallet as any)
-    .upgradeCopyWalletImplementation(implementation.address);
+  // const tx = await factory
+  //   .connect(wallet as any)
+  //   .upgradeCopyWalletImplementation(implementation.address);
 
-  console.log("update", tx);
+  // console.log("update", tx);
 }
 
 main();
