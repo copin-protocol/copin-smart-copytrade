@@ -1,6 +1,6 @@
 // 0x81f6db11736589eab14b59c5251c27482e6c7c12
 import { ethers, network } from "hardhat";
-import { abi as accountAbi } from "../../artifacts/contracts/CopyWalletSNXv2.sol/CopyWalletSNXv2.json";
+import { abi as accountAbi } from "../../artifacts/contracts/CopyWalletGNSv8.sol/CopyWalletGNSv8.json";
 import { CONFIG, Command } from "../../utils/constants";
 import { getRelaySigner } from "../../utils/relay";
 
