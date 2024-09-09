@@ -82,7 +82,10 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
 
     /* ========== PERPS ========== */
 
-    function closePosition(uint32 _index) external nonReentrant {
+    function closePosition(
+        uint32 _index,
+        uint64 _expectedPrice
+    ) external nonReentrant {
         if (!isOwner(msg.sender)) revert Unauthorized();
         TraderPosition memory traderPosition = _traderPositions[_index];
         bytes32 key = keccak256(
@@ -91,7 +94,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
                 uint256(traderPosition.index)
             )
         );
-        _closeOrder(traderPosition.trader, key, _index);
+        _closeOrder(traderPosition.trader, key, _index, _expectedPrice);
     }
 
     function claimRewards(
@@ -279,9 +282,11 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
     function _perpCloseOrder(bytes calldata _inputs) internal override {
         address source;
         uint32 sourceIndex;
+        uint64 expectedPrice;
         assembly {
             source := calldataload(_inputs.offset)
             sourceIndex := calldataload(add(_inputs.offset, 0x20))
+            expectedPrice := calldataload(add(_inputs.offset, 0x40))
         }
 
         bytes32 key = keccak256(abi.encodePacked(source, uint256(sourceIndex)));
@@ -295,7 +300,7 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             revert SourceMismatch();
         }
 
-        _closeOrder(source, key, index);
+        _closeOrder(source, key, index, expectedPrice);
     }
 
     function _openTrade(
@@ -424,14 +429,15 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
     function _closeOrder(
         address _source,
         bytes32 _key,
-        uint32 _index
+        uint32 _index,
+        uint64 _expectedPrice
     ) internal {
         IGainsTrading.Trade memory trade = GAINS_TRADING.getTrade(
             address(this),
             _index
         );
 
-        GAINS_TRADING.closeTradeMarket(_index);
+        GAINS_TRADING.closeTradeMarket(_index, _expectedPrice);
 
         uint256 size = (trade.collateralAmount * trade.leverage) / 1000;
 

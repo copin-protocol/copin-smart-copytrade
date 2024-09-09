@@ -49,7 +49,7 @@ interface IGainsTrading {
         address _referrer
     ) external;
 
-    function closeTradeMarket(uint32 _index) external;
+    function closeTradeMarket(uint32 _index, uint64 _expectedPrice) external;
 
     function cancelOpenOrder(uint32 _index) external;
 

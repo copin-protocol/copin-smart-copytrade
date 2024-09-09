@@ -19,7 +19,12 @@ async function main() {
 
   const tx = await account.execute(
     [Command.PERP_CLOSE_ORDER],
-    [abi.encode(["address", "uint256"], [CONFIG.SMART_WALLET_ADDRESS, 2])]
+    [
+      abi.encode(
+        ["address", "uint256", "uint256"],
+        [CONFIG.SMART_WALLET_ADDRESS, 2, 1000]
+      ),
+    ]
   );
   console.log("tx", tx);
 }
