@@ -289,18 +289,32 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             expectedPrice := calldataload(add(_inputs.offset, 0x40))
         }
 
-        bytes32 key = keccak256(abi.encodePacked(source, uint256(sourceIndex)));
-        uint32 index = _keyIndexes[key];
-        TraderPosition memory traderPosition = _traderPositions[index];
+        if (source != address(this)) {
+            bytes32 key = keccak256(
+                abi.encodePacked(source, uint256(sourceIndex))
+            );
+            uint32 index = _keyIndexes[key];
+            TraderPosition memory traderPosition = _traderPositions[index];
 
-        if (
-            traderPosition.trader != source ||
-            traderPosition.index != sourceIndex
-        ) {
-            revert SourceMismatch();
+            if (
+                traderPosition.trader != source ||
+                traderPosition.index != sourceIndex
+            ) {
+                revert SourceMismatch();
+            }
+            _closeOrder(source, key, index, expectedPrice);
+        } else {
+            TraderPosition memory traderPosition = _traderPositions[
+                sourceIndex
+            ];
+            bytes32 key = keccak256(
+                abi.encodePacked(
+                    traderPosition.trader,
+                    uint256(traderPosition.index)
+                )
+            );
+            _closeOrder(traderPosition.trader, key, sourceIndex, expectedPrice);
         }
-
-        _closeOrder(source, key, index, expectedPrice);
     }
 
     function _openTrade(
@@ -315,6 +329,9 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
         uint64 _sl,
         uint16 _slippage
     ) internal {
+        if (_source == address(this)) {
+            revert InvalidSource();
+        }
         bytes32 key = keccak256(
             abi.encodePacked(_source, uint256(_sourceIndex))
         );
@@ -405,7 +422,8 @@ contract CopyWalletGNSv8 is CopyWallet, ICopyWalletGNSv8 {
             GAINS_TRADING.decreasePositionSize({
                 _index: trade.index,
                 _collateralDelta: _collateral,
-                _leverageDelta: 0
+                _leverageDelta: 0,
+                _expectedPrice: _price
             });
         }
 

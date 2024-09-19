@@ -35,4 +35,6 @@ interface ICopyWalletGNSv8 {
     error TradeOpening();
 
     error AlreadyCharged();
+
+    error InvalidSource();
 }

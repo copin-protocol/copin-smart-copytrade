@@ -75,6 +75,7 @@ interface IGainsTrading {
     function decreasePositionSize(
         uint32 _index,
         uint120 _collateralDelta,
-        uint24 _leverageDelta
+        uint24 _leverageDelta,
+        uint64 _expectedPrice
     ) external;
 }
